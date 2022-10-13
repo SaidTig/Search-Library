@@ -143,6 +143,19 @@ def my_form_post():
     response=elastic_client.search(index="cv", body=payload)
     fichiers = []
     for h in response["hits"]["hits"]:
-    	fichiers.append("<a href='file://" + h["_source"]["Fichier"] + "'> file://" + h["_source"]["Fichier"] + "</a>")
-    returned = "\n".join(fichiers)
+    	raw = "<tr>"+"<td>"+ h["_source"]["Name"] + "</td>"+"<td>"+ h["_source"]["Email"] + "</td>"+"<td>"+ h["_source"]["Tel"] + "</td>"+"<td><a href='file://" + h["_source"]["Fichier"] + "'> file://" + h["_source"]["Fichier"] + "</a></td></tr>"
+    	fichiers.append(raw)
+    returned = '''<!DOCTYPE html>
+<html>
+<body>
+
+<h2>Candidats qui correspondent à la recherche :</h2>
+
+<table style="width:100%">
+  <tr>
+    <th>Nom et Prénom</th>
+    <th>Email</th>
+    <th>Tél</th>
+    <th>CV</th>
+  </tr> ''' + "\n".join(fichiers) + ''' </table>  </body> </html>'''
     return  returned
