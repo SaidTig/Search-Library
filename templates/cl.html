@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+ 
+<html lang="en">
+ 
+<head>
+ 
+    <meta charset="UTF-8">
+ 
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+ 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ 
+    <title>NB-IoT NIDD</title>
+
+    
+
+
+ 
+
+<style>
+.break-word {
+     white-space: -moz-pre-wrap !important;  /* Mozilla, since 1999 */
+     white-space: -pre-wrap;      /* Opera 4-6 */
+     white-space: -o-pre-wrap;    /* Opera 7 */
+     white-space: pre-wrap;       /* css-3 */
+     word-wrap: break-word;       /* Internet Explorer 5.5+ */
+     word-break: break-all;
+     white-space: normal;
+}
+.button {
+  border: none;
+  color: white;
+  padding: 15px 32px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  margin: 4px 2px;
+  cursor: pointer;
+}
+
+.button1 {background-color: #4CAF50;} /* Green */
+
+
+body {
+  background-color: grey;
+}
+
+h1 {
+  color: black;
+  text-align: center;
+}
+
+p {
+  font-family: verdana;
+  font-size: 20px;
+}
+
+.switch {
+	display: inline-block;
+	position: absolute;
+	width: 70px;
+	height: 28px;
+	cursor: pointer;
+	overflow: hidden;
+}
+.switch input {
+	position: absolute;
+	top: -30px;
+	left: -30px;
+	width: 0px;
+	height: 0px;
+}
+.switch input + span {
+ 	position: absolute;
+	top: 0px;
+	bottom: 0px;
+	left: 0px;
+	right: 10px;
+	background: #99b4df;
+	border-radius: 20px;
+}
+.switch input:checked + span {
+	background: #346abf;
+}
+.switch input + span:before {
+	content: "";
+	display: inline-block;
+	position: absolute;
+	top: 50%;
+	left: 4px;
+	width: 22px;
+	height: 22px;
+	background: white;
+	border-radius: 50%;
+	transform: translateY(-50%);
+	transition: all .1s;
+}
+.switch input:checked + span:before {
+	left: 34px;
+}
+
+
+</style>
+
+</head>
+     
+<body>
+<button class="button button1" onclick=location.replace("/")>Retour au menu principal</button>
+
+  <p>
+  <label for="lname">Send data (optional) :</label>
+  <input type="text" id="toSend" placeholder="Type Hexa...">
+  <input type="submit" value="Send" onClick="sendMsg()"><br><br>
+  <label for="echo">Enable echo :</label> 
+    <label class="switch">
+    <input type="checkbox" id="echo" onClick="enableEcho(this)" />
+    <span></span>
+  </label>
+    &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
+    <input type="number" id="timeEcho" disabled="disabled" placeholder="Time to echo (ms)"><label />
+    <input type="submit" value="Submit" onClick="timeEchoSubmit()">
+  </p>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" />
+<div class="container">
+  <h1 class="display-3">NON-IP DATA</h1>
+  <table class="table table-dark table-striped" id="myTable">
+    <thead>
+      <tr>
+        <th scope="col">Num</th>
+        <th scope="col">Time</th>
+        <th scope="col">Data</th>
+        <th scope="col">Size</th>
+        <th scope="col">IMSI</th>
+        <th scope="col">T3412</th>
+        <th scope="col">T3324</th>
+        <th scope="col">eDRX</th>
+        <th scope="col">eDrx Cycle</th>
+        <th scope="col">PTW</th>
+        <th scope="col">Bearer</th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+</div>
+
+
+
+<script type="text/javascript">
+    function sleep(milliseconds) {
+       const start = Date.now();
+       while (Date.now() - start < milliseconds);
+    }
+    const socket = new WebSocket('ws://127.0.0.1:9000');
+    const received = [];
+    let num = 0;
+    let edrx_u = "No information";
+    let cycle_u = "/";
+    let ptw_u = "/";
+    let timeEcho = 13000;
+
+socket.addEventListener('open', function (event) {
+    console.log("open action");
+    socket.send('{"message": "register", "register": [' + JSON.stringify('non_ip_data') + ']}');
+});
+ 
+ 
+function Received(n,time,data,size,imsi,t3412,t3324,edrx,cycle,ptw,bearer){
+    this.n = n;
+    this.time = time;
+    this.data = data;
+    this.size = size;
+    this.imsi= imsi;
+    this.t3412 = t3412;
+    this.t3324= t3324;
+    this.edrx = edrx;
+    this.cycle = cycle;
+    this.ptw = ptw;
+    this.bearer = bearer;
+}
+
+
+socket.addEventListener('message', function (event) {
+   
+   console.log(event.data);
+   if(JSON.parse(event.data)["message"] == "ue_get"){
+      t3412_u = JSON.parse(event.data)["ue_list"][0]["t3412"];
+      t3324_u = JSON.parse(event.data)["ue_list"][0]["t3324"];
+      if(JSON.parse(event.data)["ue_list"][0]["edrx"]){
+         edrx_u = "Activated";
+         cycle_u = JSON.parse(event.data)["ue_list"][0]["edrx"]["cycle"];
+         ptw_u = JSON.parse(event.data)["ue_list"][0]["edrx"]["paging_time_window"];
+      }
+
+    received.push(new Received(num,time_u, data_u, size_u, imsi_u, t3412_u, t3324_u, edrx_u, cycle_u, ptw_u, bearer_u));
+      document.querySelector("#myTable tbody").innerHTML = received.map(Received => `<tr><td>${Received.n}</td><td>${Received.time}</td><td class="break-word">${Received.data}</td><td>${Received.size} Bytes<td>${Received.imsi}</td><td>${Received.t3412}</td><td>${Received.t3324}</td><td>${Received.edrx}</td><td>${Received.cycle}</td><td>${Received.ptw}</td><td>${Received.bearer}</td></tr>`).join('');
+   }
+
+   if(JSON.parse(event.data)["message"] == "non_ip_data" && JSON.parse(event.data)["imsi"]){
+      num++;
+      size_u = JSON.parse(event.data)["data"].length/2;
+      time_u = JSON.parse(event.data)["time"];
+      bearer_u = JSON.parse(event.data)["erab_id"];
+      data_u = "Ox" + JSON.parse(event.data)["data"].toUpperCase();
+      imsi_u = JSON.parse(event.data)["imsi"];
+      socket.send('{"message": "ue_get", "imsi" : "' + imsi_u + '"}');
+
+      //document.querySelector("input").toggleAttribute("enabled");
+      if(document.querySelector('#echo').checked){
+         sleep(timeEcho);
+         socket.send('{"message": "non_ip_data", "erab_id" : ' + bearer_u + ', "apn" : "nonip", "imsi":"' + imsi_u + '", "data" : "' + JSON.parse(event.data)["data"].toUpperCase() + '"}');
+      }
+
+      
+   }
+   
+});
+
+
+function sendMsg() {
+  let toSend = document.getElementById("toSend").value;
+  let last = received[received.length-1];
+  socket.send('{"message": "non_ip_data", "erab_id" :' + last.bearer + ', "apn" : "nonip", "imsi":"' + last.imsi + '", "data" : "' + toSend + '"}');
+}
+
+     function enableEcho() {
+        var timeEcho = document.getElementById("timeEcho");
+        timeEcho.disabled = echo.checked ? false : true;
+        if (!timeEcho.disabled) {
+            timeEcho.focus();
+        }
+    }
+
+    function timeEchoSubmit(){
+        timeEcho = document.getElementById("timeEcho").value;
+}
+   </script>
+</body>
+ 
+
+ 
+</html>
